@@ -69,6 +69,7 @@
     align-items: center;
     justify-content: center;
     z-index: 2;
+    cursor: pointer;
   }
   #stage {
     position: absolute;
@@ -276,7 +277,6 @@
   }
 
   /* APPLET DETAILS */
-  /* Calendar */
   .cal-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -300,7 +300,6 @@
     color: var(--eye);
   }
 
-  /* Clock & Alarm */
   .clock-big {
     font-size: 10vmin;
     text-align: center;
@@ -328,7 +327,6 @@
     text-align: center;
   }
 
-  /* Weather */
   .wx-info {
     display: flex;
     flex-direction: column;
@@ -344,7 +342,6 @@
     text-shadow: 0 0 15px var(--glow);
   }
 
-  /* News & Sports Lists */
   .pixel-list {
     list-style: none;
     display: flex;
@@ -365,16 +362,6 @@
     margin-bottom: 1vmin;
     font-size: 2vmin;
   }
-
-  #torch-overlay {
-    position: absolute;
-    inset: 0;
-    background: #ffffff;
-    z-index: 200;
-    display: none;
-    cursor: pointer;
-  }
-  #torch-overlay.on { display: block; }
 
   #gear-btn {
     position: absolute;
@@ -474,9 +461,7 @@
 
 <div id="viewport-wrapper">
   <button id="gear-btn" aria-label="Settings" title="Configure AI Provider & Settings">⚙</button>
-  <div id="torch-overlay"></div>
 
-  <audio id="radio-player" preload="none"></audio>
   <video id="cam-preview" playsinline></video>
   <canvas id="cam-canvas"></canvas>
 
@@ -490,7 +475,7 @@
   <div id="sub"></div>
 
   <!-- CYBERDECK BOTTOM APPLET NAV BAR -->
-  <div id="cyber-deck-bar">
+  <div id="cyber-deck-bar" onclick="event.stopPropagation()">
     <button class="deck-btn" onclick="openApplet('cal')">📅 CAL</button>
     <button class="deck-btn" onclick="openApplet('clock')">⏰ CLK</button>
     <button class="deck-btn" onclick="openApplet('wx')">🌤 WX</button>
@@ -498,9 +483,8 @@
     <button class="deck-btn" onclick="openApplet('sports')">⚽ FOOTY</button>
   </div>
 
-  <!-- APPLET OVERLAYS -->
-  <!-- 1. CALENDAR -->
-  <div id="applet-cal" class="applet-panel">
+  <!-- APPLETS -->
+  <div id="applet-cal" class="applet-panel" onclick="event.stopPropagation()">
     <div class="applet-header">
       <span class="applet-title">SYSTEM_CALENDAR</span>
       <button class="applet-close" onclick="closeApplet()">[X]</button>
@@ -516,8 +500,7 @@
     </div>
   </div>
 
-  <!-- 2. CLOCK & ALARM -->
-  <div id="applet-clock" class="applet-panel">
+  <div id="applet-clock" class="applet-panel" onclick="event.stopPropagation()">
     <div class="applet-header">
       <span class="applet-title">CHRONO_LOGIC</span>
       <button class="applet-close" onclick="closeApplet()">[X]</button>
@@ -534,8 +517,7 @@
     </div>
   </div>
 
-  <!-- 3. WEATHER -->
-  <div id="applet-wx" class="applet-panel">
+  <div id="applet-wx" class="applet-panel" onclick="event.stopPropagation()">
     <div class="applet-header">
       <span class="applet-title">ATMOS_DATA</span>
       <button class="applet-close" onclick="closeApplet()">[X]</button>
@@ -549,8 +531,7 @@
     </div>
   </div>
 
-  <!-- 4. UK NEWS -->
-  <div id="applet-news" class="applet-panel">
+  <div id="applet-news" class="applet-panel" onclick="event.stopPropagation()">
     <div class="applet-header">
       <span class="applet-title">UK_HEADLINES_FEED</span>
       <button class="applet-close" onclick="closeApplet()">[X]</button>
@@ -562,8 +543,7 @@
     </div>
   </div>
 
-  <!-- 5. UK FOOTBALL -->
-  <div id="applet-sports" class="applet-panel">
+  <div id="applet-sports" class="applet-panel" onclick="event.stopPropagation()">
     <div class="applet-header">
       <span class="applet-title">UK_FOOTBALL_SCORES</span>
       <button class="applet-close" onclick="closeApplet()">[X]</button>
@@ -576,7 +556,7 @@
   </div>
 
   <!-- SETTINGS MODAL -->
-  <div id="config-modal">
+  <div id="config-modal" onclick="event.stopPropagation()">
     <div class="modal-box">
       <h2>BURT_CONFIG</h2>
       
@@ -596,6 +576,12 @@
         <input type="password" id="grok-key-input" placeholder="xai-..." autocomplete="off">
       </div>
 
+      <p>Enable Camera:</p>
+      <select id="camera-select">
+        <option value="off">Off</option>
+        <option value="on">On (Vision Mode)</option>
+      </select>
+
       <p>Theme Color:</p>
       <select id="theme-select">
         <option value="cyan">Cyan (Default)</option>
@@ -603,11 +589,7 @@
         <option value="amber">Amber Gold</option>
         <option value="green">Matrix Green</option>
         <option value="blue">Royal Blue</option>
-        <option value="custom">Custom Color</option>
       </select>
-      <div id="custom-color-group" style="display:none;">
-        <input type="color" id="custom-color-picker" value="#9be7e0">
-      </div>
 
       <p>Background Style:</p>
       <select id="bg-select">
@@ -624,11 +606,6 @@
         <option value="almond">Almond</option>
       </select>
 
-      <p>Voice:</p>
-      <select id="voice-select">
-        <option value="">Auto Natural</option>
-      </select>
-
       <div class="modal-actions">
         <button class="btn btn-secondary" id="cancel-config-btn">CANCEL</button>
         <button class="btn btn-primary" id="save-config-btn">SAVE</button>
@@ -639,15 +616,12 @@
 
 <script>
 let GEMINI_API_KEY = localStorage.getItem("desk_buddy_gemini_key") || "";
-const GEMINI_MODEL = "gemini-2.5-flash";
 let GROK_API_KEY = localStorage.getItem("desk_buddy_grok_key") || "";
-const GROK_MODEL = "grok-4";
 let AI_PROVIDER = localStorage.getItem("desk_buddy_provider") || "gemini";
 let THEME_PRESET = localStorage.getItem("desk_buddy_theme") || "cyan";
-let CUSTOM_COLOR = localStorage.getItem("desk_buddy_custom_color") || "#9be7e0";
 let AVATAR_SHAPE = localStorage.getItem("desk_buddy_shape") || "default";
 let BG_STYLE = localStorage.getItem("desk_buddy_bg") || "black";
-let VOICE_NAME = localStorage.getItem("desk_buddy_voice") || "";
+let ENABLE_CAM = localStorage.getItem("desk_buddy_cam") || "off";
 
 const COLOR_PRESETS = {
   cyan:  { eye: "#9be7e0", glow: "#3fb8b0", art: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1200&auto=format&fit=crop" },
@@ -657,12 +631,8 @@ const COLOR_PRESETS = {
   blue:  { eye: "#57b3ff", glow: "#0077ff", art: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1200&auto=format&fit=crop" }
 };
 
-function applyVisualTheme(theme, customHex, shape, bgStyle) {
+function applyVisualTheme(theme, shape, bgStyle) {
   let colors = COLOR_PRESETS[theme] || COLOR_PRESETS.cyan;
-  if (theme === "custom" && customHex) {
-    colors = { eye: customHex, glow: customHex, art: "" };
-  }
-  
   document.documentElement.style.setProperty("--eye", colors.eye);
   document.documentElement.style.setProperty("--glow", colors.glow);
 
@@ -678,7 +648,7 @@ function applyVisualTheme(theme, customHex, shape, bgStyle) {
     document.body.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.85)), url('${colors.art}')`;
   }
 }
-applyVisualTheme(THEME_PRESET, CUSTOM_COLOR, AVATAR_SHAPE, BG_STYLE);
+applyVisualTheme(THEME_PRESET, AVATAR_SHAPE, BG_STYLE);
 
 /* MATRIX RAIN ANIMATION */
 const matrixCanvas = document.getElementById("matrix-canvas");
@@ -698,7 +668,6 @@ let drops = Array(columns).fill(1);
 
 function drawMatrix() {
   if (!document.body.classList.contains("bg-matrix")) return;
-  
   mCtx.fillStyle = "rgba(0, 0, 0, 0.08)";
   mCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
 
@@ -718,7 +687,73 @@ function drawMatrix() {
 }
 setInterval(drawMatrix, 40);
 
-/* APPLET NAVIGATION & SWIPE SYSTEM */
+/* CAMERA & SPEECH RECOGNITION RESTORATION */
+let videoStream = null;
+async function initCamera() {
+  if (ENABLE_CAM === "on") {
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const preview = document.getElementById("cam-preview");
+      preview.srcObject = videoStream;
+      preview.play();
+    } catch (e) {
+      console.warn("Camera access denied or unavailable.");
+    }
+  } else if (videoStream) {
+    videoStream.getTracks().forEach(track => track.stop());
+    videoStream = null;
+  }
+}
+initCamera();
+
+let recognition = null;
+let isListening = false;
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    isListening = true;
+    setFace("listening");
+    sub.textContent = "LISTENING...";
+    sub.classList.add("on");
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    handleUserInput(transcript);
+  };
+
+  recognition.onerror = recognition.onend = () => {
+    isListening = false;
+    if (state === "listening") {
+      setFace("idle");
+      sub.classList.remove("on");
+    }
+  };
+}
+
+function startListening() {
+  if (recognition && !isListening) {
+    try { recognition.start(); } catch(e) {}
+  } else {
+    speak("Hello! I am Burt.", "happy");
+  }
+}
+
+function handleUserInput(text) {
+  speak(`You said: "${text}". I am listening!`, "happy");
+}
+
+/* TAP TO INTERACT RESTORATION */
+document.getElementById("viewport-wrapper").addEventListener("click", (e) => {
+  if (e.target.closest('#config-modal') || e.target.closest('#cyber-deck-bar') || e.target.closest('.applet-panel') || e.target.closest('#gear-btn')) return;
+  startListening();
+});
+
+/* SWIPE GESTURES & APPLETS */
 const APPLET_ORDER = ['cal', 'clock', 'wx', 'news', 'sports'];
 let currentAppletIndex = -1;
 
@@ -791,7 +826,7 @@ function renderCalendar() {
   }
 }
 
-let alarmTime = null, alarmInterval = null;
+let alarmTime = null;
 function updateClock() {
   const now = new Date();
   document.getElementById('deck-clock-time').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -892,7 +927,6 @@ async function fetchSports() {
 
 /* BURT EYE & EXPRESSION SYSTEM */
 const stage = document.getElementById("stage");
-const look = document.getElementById("look");
 const eyes = [...document.querySelectorAll(".eye")];
 const brows = [...document.querySelectorAll(".brow")];
 const sub = document.getElementById("sub");
@@ -908,13 +942,11 @@ const FACES = {
   sad:       { upper:"-48%", rot:"22deg", sy:.92, by:"1vmin", br:"-24deg", bh:"4vmin" },
   angry:     { upper:"-62%", rot:"-24deg", sy:.9, by:"2.5vmin", br:"26deg", bh:"1.5vmin" },
   confused:  { upper:"-70%", rot:"10deg", by:"-1vmin", br:"-18deg", bh:"5vmin" },
-  surprised: { sx:.82, sy:1.22, by:"-5vmin", bh:"8vmin" },
-  sleepy:    { upper:"-18%", sy:.85, by:"2vmin", bh:"2vmin" },
-  sleep:     { upper:"-4%", sy:.5, by:"3vmin", bh:"1vmin" }
+  surprised: { sx:.82, sy:1.22, by:"-5vmin", bh:"8vmin" }
 };
 const DEFAULTS = { upper:"-110%", lower:"110%", rot:"0deg", sy:1, sx:1, by:"0vmin", br:"0deg", bh:"5vmin" };
 
-let state = "idle", asleep = false, busy = false;
+let state = "idle";
 
 function setFace(name) {
   const f = Object.assign({}, DEFAULTS, FACES[name] || {});
@@ -955,10 +987,12 @@ function speak(text, emotion) {
 }
 
 /* SETTINGS MODAL */
-gearBtn.onclick = () => {
+gearBtn.onclick = (e) => {
+  e.stopPropagation();
   document.getElementById("api-key-input").value = GEMINI_API_KEY;
   document.getElementById("grok-key-input").value = GROK_API_KEY;
   document.getElementById("provider-select").value = AI_PROVIDER;
+  document.getElementById("camera-select").value = ENABLE_CAM;
   document.getElementById("theme-select").value = THEME_PRESET;
   document.getElementById("bg-select").value = BG_STYLE;
   document.getElementById("shape-select").value = AVATAR_SHAPE;
@@ -971,6 +1005,7 @@ document.getElementById("save-config-btn").onclick = () => {
   GEMINI_API_KEY = document.getElementById("api-key-input").value.trim();
   GROK_API_KEY = document.getElementById("grok-key-input").value.trim();
   AI_PROVIDER = document.getElementById("provider-select").value;
+  ENABLE_CAM = document.getElementById("camera-select").value;
   THEME_PRESET = document.getElementById("theme-select").value;
   BG_STYLE = document.getElementById("bg-select").value;
   AVATAR_SHAPE = document.getElementById("shape-select").value;
@@ -978,11 +1013,13 @@ document.getElementById("save-config-btn").onclick = () => {
   localStorage.setItem("desk_buddy_gemini_key", GEMINI_API_KEY);
   localStorage.setItem("desk_buddy_grok_key", GROK_API_KEY);
   localStorage.setItem("desk_buddy_provider", AI_PROVIDER);
+  localStorage.setItem("desk_buddy_cam", ENABLE_CAM);
   localStorage.setItem("desk_buddy_theme", THEME_PRESET);
   localStorage.setItem("desk_buddy_bg", BG_STYLE);
   localStorage.setItem("desk_buddy_shape", AVATAR_SHAPE);
 
-  applyVisualTheme(THEME_PRESET, CUSTOM_COLOR, AVATAR_SHAPE, BG_STYLE);
+  applyVisualTheme(THEME_PRESET, AVATAR_SHAPE, BG_STYLE);
+  initCamera();
   configModal.classList.remove("open");
 };
 
