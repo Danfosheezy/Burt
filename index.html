@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<!-- Free Open Source TTS Engine -->
+<script src="https://js.puter.com/v2/"></script>
 <style>
   :root {
     --eye: #9be7e0;
@@ -541,11 +543,6 @@
         <option value="off">Off (Disabled)</option>
       </select>
 
-      <p>Voice Selector (English Only):</p>
-      <select id="voice-select">
-        <option value="">Default English Voice</option>
-      </select>
-
       <p>Theme Color:</p>
       <select id="theme-select">
         <option value="cyan">Cyan (Default)</option>
@@ -590,7 +587,6 @@ let AVATAR_SHAPE = localStorage.getItem("desk_buddy_shape") || "default";
 let BG_STYLE = localStorage.getItem("desk_buddy_bg") || "black";
 let ENABLE_CAM = localStorage.getItem("desk_buddy_cam") || "off";
 let ENABLE_MIC = localStorage.getItem("desk_buddy_mic") || "on";
-let VOICE_NAME = localStorage.getItem("desk_buddy_voice") || "";
 
 const COLOR_PRESETS = {
   cyan:  { eye: "#9be7e0", glow: "#3fb8b0", art: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1200&auto=format&fit=crop" },
@@ -618,29 +614,6 @@ function applyVisualTheme(theme, shape, bgStyle) {
   }
 }
 applyVisualTheme(THEME_PRESET, AVATAR_SHAPE, BG_STYLE);
-
-/* STRICT ENGLISH-ONLY VOICE FILTERING */
-function populateVoiceList() {
-  if (!('speechSynthesis' in window)) return;
-  const select = document.getElementById('voice-select');
-  const voices = speechSynthesis.getVoices();
-  select.innerHTML = '<option value="">Default English Voice</option>';
-  
-  // Filter exclusively for English languages (en, en-US, en-GB, en-AU, etc.)
-  const englishVoices = voices.filter(voice => voice.lang && voice.lang.toLowerCase().startsWith('en'));
-
-  englishVoices.forEach(voice => {
-    const opt = document.createElement('option');
-    opt.value = voice.name;
-    opt.textContent = `${voice.name} (${voice.lang})`;
-    if (voice.name === VOICE_NAME) opt.selected = true;
-    select.appendChild(opt);
-  });
-}
-if ('speechSynthesis' in window) {
-  speechSynthesis.onvoiceschanged = populateVoiceList;
-  populateVoiceList();
-}
 
 /* MATRIX ANIMATION */
 const matrixCanvas = document.getElementById("matrix-canvas");
@@ -731,7 +704,7 @@ async function handleUserInput(text) {
   sub.textContent = "THINKING...";
   sub.classList.add("on");
 
-  const systemPrompt = "You are Burt, a friendly, witty, sarcastic cyberpunk desk buddy AI assistant. Keep all responses under 2 short sentences.";
+  const systemPrompt = "You are Burt, a friendly, witty, British desk buddy AI assistant. Keep all responses under 2 short sentences.";
 
   if (AI_PROVIDER === "gemini") {
     if (!GEMINI_API_KEY) {
@@ -957,7 +930,6 @@ async function fetchWeather() {
   }
 }
 
-/* FIXED SPECIFIED UK NEWS FEED: http://feeds.skynews.com/feeds/rss/uk.xml */
 async function fetchNews() {
   const list = document.getElementById('news-list');
   const skyUrl = encodeURIComponent('http://feeds.skynews.com/feeds/rss/uk.xml');
@@ -979,7 +951,6 @@ async function fetchNews() {
   list.innerHTML = '<li class="pixel-item">UK NEWS FEED TEMPORARILY OFFLINE.</li>';
 }
 
-/* FIXED SPECIFIED UK FOOTBALL FEED: http://newsrss.bbc.co.uk/rss/sportonline_uk_edition/football/rss.xml */
 async function fetchSports() {
   const list = document.getElementById('sports-list');
   const bbcFootyUrl = encodeURIComponent('http://newsrss.bbc.co.uk/rss/sportonline_uk_edition/football/rss.xml');
@@ -1038,18 +1009,47 @@ function setFace(name) {
   }
 }
 
+/* REWRITTEN TTS ENGINE - NATURAL BRITISH MALE VOICE VIA PUTER.JS WITH FALLBACK */
+let activeAudio = null;
+
 function speak(text, emotion) {
   setFace(emotion in FACES ? emotion : "happy");
   sub.textContent = text;
   sub.classList.add("on");
-  
+
+  if (activeAudio) {
+    activeAudio.pause();
+    activeAudio = null;
+  }
+
+  // Primary: High quality natural neural British voice via Puter.js
+  if (window.puter && puter.ai && puter.ai.txt2speech) {
+    puter.ai.txt2speech(text, "en-GB")
+      .then((audio) => {
+        activeAudio = audio;
+        audio.play();
+        audio.onended = () => {
+          sub.classList.remove("on");
+          setFace("idle");
+        };
+      })
+      .catch(() => {
+        fallbackSpeech(text);
+      });
+  } else {
+    fallbackSpeech(text);
+  }
+}
+
+function fallbackSpeech(text) {
   if ("speechSynthesis" in window) {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    if (VOICE_NAME) {
-      const selectedVoice = speechSynthesis.getVoices().find(v => v.name === VOICE_NAME);
-      if (selectedVoice) u.voice = selectedVoice;
-    }
+    u.lang = "en-GB";
+    const voices = speechSynthesis.getVoices();
+    const ukMale = voices.find(v => v.lang.includes("en-GB") && (v.name.includes("Male") || v.name.includes("George") || v.name.includes("Oliver")));
+    if (ukMale) u.voice = ukMale;
+
     u.onend = u.onerror = () => {
       sub.classList.remove("on");
       setFace("idle");
@@ -1085,7 +1085,6 @@ gearBtn.onclick = (e) => {
   document.getElementById("bg-select").value = BG_STYLE;
   document.getElementById("shape-select").value = AVATAR_SHAPE;
   toggleProviderFields();
-  populateVoiceList();
   configModal.classList.add("open");
 };
 
@@ -1103,7 +1102,6 @@ document.getElementById("save-config-btn").onclick = () => {
   THEME_PRESET = document.getElementById("theme-select").value;
   BG_STYLE = document.getElementById("bg-select").value;
   AVATAR_SHAPE = document.getElementById("shape-select").value;
-  VOICE_NAME = document.getElementById("voice-select").value;
 
   localStorage.setItem("desk_buddy_gemini_key", GEMINI_API_KEY);
   localStorage.setItem("desk_buddy_grok_key", GROK_API_KEY);
@@ -1116,7 +1114,6 @@ document.getElementById("save-config-btn").onclick = () => {
   localStorage.setItem("desk_buddy_theme", THEME_PRESET);
   localStorage.setItem("desk_buddy_bg", BG_STYLE);
   localStorage.setItem("desk_buddy_shape", AVATAR_SHAPE);
-  localStorage.setItem("desk_buddy_voice", VOICE_NAME);
 
   applyVisualTheme(THEME_PRESET, AVATAR_SHAPE, BG_STYLE);
   configModal.classList.remove("open");
